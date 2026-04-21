@@ -44,9 +44,9 @@ export function OnboardingScreen({
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.heroCard}>
         <Text style={styles.eyebrow}>Ira</Text>
-        <Text style={styles.title}>A calmer layer for your daily context.</Text>
+        <Text style={styles.title}>A calmer way to see what matters next.</Text>
         <Text style={styles.subtitle}>
-          Widgets, permissions, and ranked suggestions are designed to feel present—not noisy.
+          Start with a few useful sources. Ira turns them into one clear brief instead of a noisy feed.
         </Text>
         <Text style={styles.progressText}>{completionCount} of 4 recommended sources connected</Text>
       </View>
@@ -60,19 +60,19 @@ export function OnboardingScreen({
       {stepIndex === 0 ? (
         <View style={styles.card}>
           <FeatureRow
-            icon="view-dashboard-outline"
-            title="Widget-first"
-            body="The home-screen widget renders pre-ranked state so it feels immediate and stable."
+            icon="text-box-outline"
+            title="One clear brief"
+            body="The app leads with the single thing most worth your attention right now."
           />
           <FeatureRow
             icon="shield-check-outline"
-            title="Permission-aware"
-            body="Each source is justified in plain language and gracefully falls back when unavailable."
+            title="Only ask when useful"
+            body="Each permission request is tied to a visible benefit, and you can say no."
           />
           <FeatureRow
-            icon="lightning-bolt-outline"
-            title="Contextual"
-            body="Suggestions combine urgency, relevance, and the sources you trust most."
+            icon="tune-variant"
+            title="Easy to tune later"
+            body="You can change what Ira uses at any time from Access and Settings."
           />
 
           <FooterActions
@@ -127,14 +127,14 @@ export function OnboardingScreen({
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>You’re ready to start.</Text>
           <Text style={styles.sectionSubtitle}>
-            You can refine sources, replay onboarding, and inspect raw signals later from Settings and Debug.
+            You can refine permissions and turn sources on or off later from Access and Settings.
           </Text>
 
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>What Ira will do next</Text>
-            <Text style={styles.summaryBody}>Rank suggestions from your available signals</Text>
-            <Text style={styles.summaryBody}>Sync the shared widget payload for Android and iOS</Text>
-            <Text style={styles.summaryBody}>Respect denied permissions and show graceful fallbacks</Text>
+            <Text style={styles.summaryTitle}>What you’ll see</Text>
+            <Text style={styles.summaryBody}>A single top brief on Home</Text>
+            <Text style={styles.summaryBody}>Extra suggestions only when there is something else worth seeing</Text>
+            <Text style={styles.summaryBody}>Graceful fallbacks when a source is off or unavailable</Text>
           </View>
 
           <FooterActions

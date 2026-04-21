@@ -5,45 +5,45 @@ import type { PermissionState, SignalSource } from './types';
 export function formatPermissionState(state: PermissionState) {
   switch (state) {
     case 'not_determined':
-      return 'Not determined';
+      return 'Not connected';
     case 'unavailable':
-      return 'Unavailable';
+      return 'Not available';
     case 'blocked':
-      return 'Needs settings access';
+      return 'Needs settings';
     case 'granted':
-      return 'Granted';
+      return 'Connected';
     case 'denied':
-      return 'Denied';
+      return 'Not allowed';
   }
 }
 
 export function getPermissionHint(source: SignalSource, state: PermissionState) {
   if (state === 'granted') {
-    return 'Connected and ready to shape contextual suggestions';
+    return 'Connected. Ira can use this source when it improves your brief.';
   }
 
   if (source === 'music' && Platform.OS === 'android') {
-    return 'Uses notification access to read the currently playing song from active media sessions';
+    return 'Uses notification access to detect what is currently playing.';
   }
 
   if (source === 'messages_summary' && Platform.OS === 'android') {
-    return 'Uses notification access to summarize recent message notifications without opening their apps';
+    return 'Uses notification access to summarize recent messages without opening their apps.';
   }
 
   if (source === 'app_usage' && Platform.OS === 'android') {
-    return 'Requires Usage Access from Android system settings';
+    return 'Requires Usage Access from Android system settings.';
   }
 
   if (source === 'health' && Platform.OS === 'android' && state === 'not_determined') {
-    return 'Requires Health Connect and physical activity access. Ira will request steps, sleep, and movement context on Android.';
+    return 'Requires Health Connect and activity access for steps, sleep, and movement context.';
   }
 
   if (source === 'health' && Platform.OS === 'android' && state === 'blocked') {
-    return 'Finish Health Connect setup in the Health Connect app permissions screen, then return to Ira and refresh.';
+    return 'Finish setup in Health Connect, then return here and refresh.';
   }
 
   if (source === 'health' && Platform.OS === 'ios' && state === 'unavailable') {
-    return 'HealthKit is best tested on a physical iPhone; Simulator support is limited';
+    return 'Health access is best tested on a physical iPhone. Simulator support is limited.';
   }
 
   if (source === 'installed_apps' && Platform.OS === 'ios') {
@@ -59,22 +59,22 @@ export function getPermissionHint(source: SignalSource, state: PermissionState) 
   }
 
   if (source === 'music' && Platform.OS === 'ios') {
-    return 'Requests Apple Music library access for music-aware suggestions';
+    return 'Requests Apple Music access for music-aware suggestions.';
   }
 
   if (state === 'not_determined') {
-    return 'Turn this on to request permission';
+    return 'Turn this on to request access.';
   }
 
   if (state === 'blocked') {
-    return 'Open system settings to finish enabling this source';
+    return 'Open system settings to finish enabling this source.';
   }
 
   if (state === 'denied') {
-    return 'Access was denied. Try again or enable it from system settings';
+    return 'Access was denied. Try again or enable it from system settings.';
   }
 
-  return 'This source is not available on the current platform';
+  return 'This source is not available on this device.';
 }
 
 export function getPermissionActionLabel(source: SignalSource, state: PermissionState) {

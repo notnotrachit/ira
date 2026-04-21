@@ -124,7 +124,7 @@ function derivePrimaryAction(
 
   if (topSuggestion?.deepLink) {
     if (topSuggestion.category === 'wellness') {
-      return { label: 'Health', deepLink: resolveHealthDeepLink(snapshot) };
+      return undefined;
     }
 
     if (topSuggestion.category === 'reminder' || hasUpcomingEvent(snapshot)) {
@@ -189,10 +189,14 @@ function buildQuickActions(
 
   const actions = [
     primaryAction,
-    snapshot.messagesSummary.unreadCount > 0
+    snapshot.messagesSummary.unreadCount > 0 && variant === 'large'
       ? { label: 'Reply', deepLink: resolveMessagesDeepLink(snapshot) }
       : undefined,
-    hasWellnessPrompt(suggestions) ? { label: 'Health', deepLink: resolveHealthDeepLink(snapshot) } : undefined,
+    (variant === 'medium' && snapshot.messagesSummary.unreadCount > 0)
+      ? { label: 'Health', deepLink: resolveHealthDeepLink(snapshot) }
+      : hasWellnessPrompt(suggestions) && snapshot.messagesSummary.unreadCount === 0
+      ? { label: 'Health', deepLink: resolveHealthDeepLink(snapshot) }
+      : undefined,
   ].filter(Boolean) as { label: string; deepLink: string }[];
 
   if (

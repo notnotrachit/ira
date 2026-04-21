@@ -16,10 +16,8 @@ import { ActivityIndicator, PaperProvider, Surface, Text } from 'react-native-pa
 import { HomeScreen } from './src/screens/HomeScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { PermissionsScreen } from './src/screens/PermissionsScreen';
-import { SettingsScreen } from './src/screens/SettingsScreen';
 import { useContextualSuggestions } from './src/modules/intelligence/hooks/useContextualSuggestions';
 import { usePermissions } from './src/modules/intelligence/hooks/usePermissions';
-import { useWidget } from './src/modules/intelligence/hooks/useWidget';
 import { formatPermissionState, getPermissionHint } from './src/modules/intelligence/permissionPresentation';
 import {
   defaultSourcePreferences,
@@ -33,21 +31,10 @@ import { appColors, appTheme } from './src/theme/appTheme';
 
 type TabParamList = {
   Home: undefined;
-  Access: undefined;
-  Settings: undefined;
+  Sources: undefined;
 };
 
 const Tab = createNativeBottomTabNavigator<TabParamList>();
-
-const sourceLabels: Record<SignalSource, string> = {
-  calendar: 'Calendar',
-  contacts: 'Contacts',
-  health: 'Health',
-  music: 'Music',
-  installed_apps: 'Installed apps',
-  app_usage: 'App usage',
-  messages_summary: 'Messages',
-};
 
 export default function App() {
   return (
@@ -83,8 +70,7 @@ const linking = {
   config: {
     screens: {
       Home: 'home',
-      Access: 'access',
-      Settings: 'settings',
+      Sources: 'sources',
     },
   },
 };
@@ -100,19 +86,12 @@ const tabIcons: Record<keyof TabParamList, {
     }),
     android: require('./assets/tabs/home.png'),
   },
-  Access: {
+  Sources: {
     ios: ({ focused }: { focused: boolean }) => ({
       type: 'sfSymbol' as const,
       name: focused ? ('shield.fill' as const) : ('shield' as const),
     }),
     android: require('./assets/tabs/access.png'),
-  },
-  Settings: {
-    ios: ({ focused }: { focused: boolean }) => ({
-      type: 'sfSymbol' as const,
-      name: focused ? ('slider.horizontal.3' as const) : ('slider.horizontal.3' as const),
-    }),
-    android: require('./assets/tabs/settings.png'),
   },
 };
 
@@ -131,7 +110,7 @@ function IraApp() {
     messages_summary: 'not_determined',
   });
 
-  const { snapshot, suggestions, refresh, isRefreshing, isStale, lastUpdatedAt } =
+  const { snapshot, suggestions, refresh, isStale, lastUpdatedAt } =
     useContextualSuggestions();
   const { permissions, requestPermission, openSettings, isPermissionRequestable } = usePermissions(
     snapshot,
@@ -228,13 +207,15 @@ function IraApp() {
     [sourceEnabled, suggestions]
   );
 
-  const { widget } = useWidget(snapshot, enabledSuggestions);
-
   function toggleSource(source: SignalSource) {
     setSourceEnabled((current) => ({
       ...current,
       [source]: !current[source],
     }));
+  }
+
+  function formatSourceName(source: SignalSource) {
+    return source.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase());
   }
 
   async function finishOnboarding() {
@@ -259,7 +240,7 @@ function IraApp() {
     if (!isPermissionRequestable(source)) {
       Alert.alert(
         'Unavailable on this platform',
-        `${sourceLabels[source]} cannot be requested on this platform in a standard third-party app.`
+        `${formatSourceName(source)} cannot be requested on this platform in a standard third-party app.`
       );
       return;
     }
@@ -285,7 +266,7 @@ function IraApp() {
 
     Alert.alert(
       'Permission update',
-      `${sourceLabels[source]} is ${formatPermissionState(result)}.\n\n${getPermissionHint(source, result)}`
+      `${formatSourceName(source)} is ${formatPermissionState(result)}.\n\n${getPermissionHint(source, result)}`
     );
   }
 
@@ -302,7 +283,7 @@ function IraApp() {
             Setting up your daily brief
           </Text>
           <Text variant="bodyLarge" style={styles.loadingSubtitle}>
-            Restoring preferences, loading context, and preparing widgets.
+            Restoring preferences and loading the signals that shape your brief.
           </Text>
           <ActivityIndicator animating color={appTheme.colors.primary} style={styles.loadingSpinner} />
         </Surface>
@@ -361,30 +342,15 @@ function IraApp() {
             <Tab.Screen name="Home" options={{ title: 'Home' }}>
               {() => (
                 <HomeScreen
-                  widget={widget}
                   suggestions={enabledSuggestions}
-                  lastUpdatedAt={lastUpdatedAt}
-                  isRefreshing={isRefreshing}
-                  isStale={isStale}
-                  onRefresh={refresh}
                 />
               )}
             </Tab.Screen>
-            <Tab.Screen name="Access" options={{ title: 'Access' }}>
+            <Tab.Screen name="Sources" options={{ title: 'Sources' }}>
               {() => (
                 <PermissionsScreen
                   permissions={permissions}
-                  onRequestPermission={requestPermission}
-                  onOpenSettings={openSettings}
-                />
-              )}
-            </Tab.Screen>
-            <Tab.Screen name="Settings" options={{ title: 'Settings' }}>
-              {() => (
-                <SettingsScreen
-                  permissions={permissions}
                   sourceEnabled={sourceEnabled}
-                  sourceLabels={sourceLabels}
                   onToggleSource={handleSourceToggle}
                 />
               )}
