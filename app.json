@@ -47,6 +47,7 @@
     },
     "plugins": [
       "./plugins/withIraNativeConfig",
+      "./plugins/withIraWidgetExtension",
       "expo-health-connect",
       ["expo-build-properties", {
         "android": {
