@@ -15,10 +15,26 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ira.app"
+      "bundleIdentifier": "com.ira.app",
+      "infoPlist": {
+        "NSCalendarsUsageDescription": "Ira reads your calendar to surface upcoming meetings and prep reminders.",
+        "NSCalendarsFullAccessUsageDescription": "Ira reads your calendar to surface upcoming meetings and prep reminders.",
+        "NSContactsUsageDescription": "Ira reads contacts to add relationship context to suggestions.",
+        "NSHealthShareUsageDescription": "Ira reads steps and sleep data to surface wellness nudges.",
+        "NSAppleMusicUsageDescription": "Ira detects now-playing music to suggest focus or movement moments."
+      }
     },
     "android": {
       "package": "com.ira.app",
+      "permissions": [
+        "android.permission.READ_CALENDAR",
+        "android.permission.READ_CONTACTS",
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.PACKAGE_USAGE_STATS",
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_SLEEP"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-adaptive-icon.png",
         "backgroundColor": "#070B14"
@@ -28,6 +44,15 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "./plugins/withIraNativeConfig",
+      "expo-health-connect",
+      ["expo-build-properties", {
+        "android": {
+          "minSdkVersion": 26
+        }
+      }]
+    ]
   }
 }

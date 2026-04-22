@@ -62,7 +62,7 @@ export function useContextualSuggestions() {
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
-        void refresh({ silent: true });
+        void refresh({ silent: true, force: true });
       }
     });
 

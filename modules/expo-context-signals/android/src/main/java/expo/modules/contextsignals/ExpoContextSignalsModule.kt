@@ -16,18 +16,9 @@ import android.provider.CalendarContract
 import android.provider.ContactsContract
 import android.provider.Settings
 import androidx.core.app.ActivityCompat
-import androidx.health.connect.client.HealthConnectClient
-import androidx.health.connect.client.permission.HealthPermission
-import androidx.health.connect.client.records.SleepSessionRecord
-import androidx.health.connect.client.records.StepsRecord
-import androidx.health.connect.client.request.AggregateRequest
-import androidx.health.connect.client.request.ReadRecordsRequest
-import androidx.health.connect.client.time.TimeRangeFilter
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
-import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
-import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -37,9 +28,7 @@ class ExpoContextSignalsModule : Module() {
     private const val WIDGET_PREFS = "ira_widget_payload"
     private const val WIDGET_PAYLOAD_KEY = "payload_json"
     private const val SIGNAL_PREFS = "ira_signal_state"
-    private const val HEALTH_REQUESTED_KEY = "health_permission_requested"
-    private const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
-    private const val NOTIF_LISTENER_CLASS = "com.ira.app.intelligence.IraNotificationListenerService"
+    private const val NOTIF_LISTENER_CLASS = "expo.modules.contextsignals.IraNotificationListenerService"
   }
 
   private val ctx: Context get() = appContext.reactContext ?: throw IllegalStateException("No context")
@@ -112,15 +101,7 @@ class ExpoContextSignalsModule : Module() {
     return if (listeners.contains(ctx.packageName)) "granted" else "not_determined"
   }
 
-  private fun healthPerm(): String {
-    val sdk = HealthConnectClient.getSdkStatus(ctx, HEALTH_CONNECT_PACKAGE)
-    if (sdk == HealthConnectClient.SDK_UNAVAILABLE) return "unavailable"
-    if (sdk == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED) return "blocked"
-    val granted = runCatching { runBlocking { HealthConnectClient.getOrCreate(ctx).permissionController.getGrantedPermissions() } }.getOrDefault(emptySet())
-    val needed = setOf(HealthPermission.getReadPermission(StepsRecord::class), HealthPermission.getReadPermission(SleepSessionRecord::class))
-    if (needed.all { granted.contains(it) }) { clearHealthFlag(); return "granted" }
-    return if (wasHealthRequested()) "blocked" else "not_determined"
-  }
+  private fun healthPerm(): String = "not_determined"
 
   // --- Request ---
 
@@ -134,25 +115,7 @@ class ExpoContextSignalsModule : Module() {
         ctx.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         return "not_determined"
       }
-      "health" -> {
-        val sdk = HealthConnectClient.getSdkStatus(ctx, HEALTH_CONNECT_PACKAGE)
-        if (sdk == HealthConnectClient.SDK_UNAVAILABLE) return "unavailable"
-        setHealthFlag()
-        if (sdk == HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED) {
-          runCatching { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$HEALTH_CONNECT_PACKAGE")).apply { setPackage("com.android.vending"); addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }) }
-          return "blocked"
-        }
-        // Launch the Health Connect permission request intent directly
-        val perms = setOf(
-          HealthPermission.getReadPermission(StepsRecord::class),
-          HealthPermission.getReadPermission(SleepSessionRecord::class),
-        )
-        val contract = androidx.health.connect.client.PermissionController.createRequestPermissionResultContract()
-        val intent = contract.createIntent(ctx, perms)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        runCatching { ctx.startActivity(intent) }
-        return "not_determined"
-      }
+      "health" -> return "unavailable" // Handled from JS via react-native-health-connect
       else -> return "unavailable"
     }
   }
@@ -172,19 +135,7 @@ class ExpoContextSignalsModule : Module() {
     return results
   }
 
-  private fun readHealth(): Map<String, Any?> {
-    val empty = mapOf<String, Any?>("stepsToday" to null, "sleepHoursLastNight" to null, "avgDailyStepsLastWeek" to null)
-    if (healthPerm() != "granted") return empty
-    val client = HealthConnectClient.getOrCreate(ctx)
-    val zone = ZoneId.systemDefault(); val now = Instant.now()
-    val sod = ZonedDateTime.now(zone).toLocalDate().atStartOfDay(zone).toInstant()
-    val ws = ZonedDateTime.now(zone).minusDays(6).toLocalDate().atStartOfDay(zone).toInstant()
-    val ss = ZonedDateTime.now(zone).minusDays(1).withHour(18).withMinute(0).withSecond(0).withNano(0).toInstant()
-    val steps = runCatching { runBlocking { client.aggregate(AggregateRequest(setOf(StepsRecord.COUNT_TOTAL), TimeRangeFilter.between(sod, now)))[StepsRecord.COUNT_TOTAL]?.toDouble() } }.getOrNull()
-    val sleep = runCatching { runBlocking { client.readRecords(ReadRecordsRequest(SleepSessionRecord::class, TimeRangeFilter.between(ss, now))).records.sumOf { Duration.between(it.startTime, it.endTime).toMinutes() } / 60.0 } }.getOrNull()
-    val avg = runCatching { runBlocking { client.aggregate(AggregateRequest(setOf(StepsRecord.COUNT_TOTAL), TimeRangeFilter.between(ws, now)))[StepsRecord.COUNT_TOTAL]?.toDouble()?.div(7.0) } }.getOrNull()
-    return mapOf("stepsToday" to steps, "sleepHoursLastNight" to sleep, "avgDailyStepsLastWeek" to avg)
-  }
+  private fun readHealth(): Map<String, Any?> = mapOf("stepsToday" to null, "sleepHoursLastNight" to null, "avgDailyStepsLastWeek" to null) // Handled from JS
 
   private fun readContacts(): List<Map<String, Any?>> {
     if (rtPerm(android.Manifest.permission.READ_CONTACTS) != "granted") return emptyList()
@@ -222,8 +173,7 @@ class ExpoContextSignalsModule : Module() {
   private fun readMessages(): Map<String, Any?> {
     if (notifPerm() != "granted") return mapOf("unreadCount" to 0, "preview" to null, "sourceAppPackage" to null)
     val now = System.currentTimeMillis()
-    val raw = ctx.getSharedPreferences(SIGNAL_PREFS, Context.MODE_PRIVATE).getString("message_notifications", null)
-    val entries = if (raw != null) runCatching { JSONArray(raw) }.getOrElse { JSONArray() } else JSONArray()
+    val entries = IraNotificationListenerService.loadNotifications(ctx)
     var count = 0; var preview: String? = null; var pkg: String? = null
     for (i in 0 until entries.length()) {
       val item = entries.optJSONObject(i) ?: continue
@@ -241,10 +191,6 @@ class ExpoContextSignalsModule : Module() {
   }
 
   // --- Helpers ---
-
-  private fun setHealthFlag() = ctx.getSharedPreferences(SIGNAL_PREFS, Context.MODE_PRIVATE).edit().putBoolean(HEALTH_REQUESTED_KEY, true).apply()
-  private fun clearHealthFlag() = ctx.getSharedPreferences(SIGNAL_PREFS, Context.MODE_PRIVATE).edit().remove(HEALTH_REQUESTED_KEY).apply()
-  private fun wasHealthRequested() = ctx.getSharedPreferences(SIGNAL_PREFS, Context.MODE_PRIVATE).getBoolean(HEALTH_REQUESTED_KEY, false)
 
   private fun catName(cat: Int): String? = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) null else when (cat) {
     android.content.pm.ApplicationInfo.CATEGORY_AUDIO -> "audio"; android.content.pm.ApplicationInfo.CATEGORY_GAME -> "game"
