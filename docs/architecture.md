@@ -2,12 +2,12 @@
 
 ## High-level flow
 
-1. React Native app requests or reads contextual signals
-2. Native bridges return platform-specific data in a shared schema
-3. `normalizeSnapshot.ts` cleans and enriches raw native data
-4. Cached snapshots hydrate the app instantly while fresh reads continue in the background
+1. React Native app requests contextual signals via Expo Module bridge
+2. Native module returns platform-specific data in a shared schema
+3. `normalizeSnapshot.ts` cleans and enriches raw data
+4. Cached snapshots hydrate the app instantly while fresh reads continue in background
 5. `suggestionEngine.ts` ranks contextual suggestions
-6. `widgetPayload.ts` derives compact widget-ready state
+6. `widgetPayload.ts` derives compact widget-ready state per variant
 7. Native widget sync writes payloads to shared storage
 8. Android and iOS widgets render the precomputed payload
 
@@ -15,59 +15,46 @@
 
 ### App shell
 
-- `App.tsx`
-- `src/screens/HomeScreen.tsx`
-- `src/screens/PermissionsScreen.tsx`
-- `src/screens/SettingsScreen.tsx`
-- `src/screens/DebugScreen.tsx`
+- `App.tsx` — tab navigation (Home, Sources)
+- `src/screens/HomeScreen.tsx` — daily brief with pull-to-refresh
+- `src/screens/PermissionsScreen.tsx` — source toggles
+- `src/screens/OnboardingScreen.tsx` — one-at-a-time permission flow
 
 ### Intelligence layer
 
-- `src/modules/intelligence/contextSignals.ts`
-- `src/modules/intelligence/mockSnapshot.ts`
+- `src/modules/intelligence/contextSignals.ts` — bridge wrapper
+- `src/modules/intelligence/normalizeSnapshot.ts`
 - `src/modules/intelligence/suggestionEngine.ts`
 - `src/modules/intelligence/widgetPayload.ts`
+- `src/modules/intelligence/storage.ts`
+- `src/modules/intelligence/permissionPresentation.ts`
 - `src/modules/intelligence/hooks/*`
 
-### Android native layer
+### Native layer (Expo Module)
 
-- `ContextSignalsModule.kt`
-- `ContextSignalsPackage.kt`
-- `IraWidgetProvider.kt`
-- `IraWidgetScheduler.kt`
-- `IraWidgetRefreshWorker.kt`
+All native code lives in `modules/expo-context-signals/`:
 
-### iOS native layer
+- `android/` — Expo Module (Kotlin), widget provider, notification listener
+- `ios/` — Expo Module (Swift)
+- `ios-widget-extension/` — WidgetKit files (added to Xcode project via config plugin)
 
-- `ios/ira/ContextSignalsModule.m`
-- `ios/irawidget/irawidget.swift`
-- `ios/irawidget/irawidgetBundle.swift`
+### Config plugins
+
+- `plugins/withIraNativeConfig.js` — Android manifest entries, Health Connect queries, minSdk
+- `plugins/withIraWidgetExtension.js` — iOS WidgetKit extension target creation
 
 ## Data contracts
 
-Key shared models live in `src/modules/intelligence/types.ts`:
+Key shared models in `src/modules/intelligence/types.ts`:
 
-- `ContextSnapshot`
-- `ContextualSuggestion`
-- `WidgetState`
-- `SharedWidgetPayload`
-
-The widget payload intentionally avoids heavy render-time logic. Widgets consume a precomputed payload with:
-
-- status
-- unread count
-- preview
-- quick actions
-- top suggestion
-- last updated time
+- `ContextSnapshot` — all cross-app signals
+- `ContextualSuggestion` — ranked suggestion with message, score, source, category, deep link
+- `WidgetState` — status, unread, preview, actions, suggestion
+- `SharedWidgetPayload` — variant data for small/medium/large/lock
 
 ## Widget state model
 
-The widget layer supports:
-
-- `ready`
-- `empty`
-- `denied`
-- `stale`
-
-This allows graceful fallback on both platforms without failing the widget entirely.
+- `ready` — signals available, content rendered
+- `empty` — no usable signals
+- `denied` — key permissions blocked
+- `stale` — snapshot older than 30 minutes

@@ -1,51 +1,39 @@
 # Testing
 
-## Automated tests
+## Automated tests (34 passing)
 
-Current automated coverage includes:
+### JS tests (`pnpm test`)
 
-- suggestion engine rules
-- widget payload derivation, including unread-first compact variants and single-action health nudges
-- snapshot normalization and fallback logic
-- JS/native bridge contract wrappers
+| File | Coverage |
+|------|----------|
+| `suggestionEngine.test.ts` | Rule matching, scoring, message previews |
+| `widgetPayload.test.ts` | Variant generation, action matching, unread sync |
+| `normalizeSnapshot.test.ts` | Placeholder detection, permission inheritance, app enrichment |
+| `contextSignals.test.ts` | Expo Module bridge contract, widget sync serialization |
+| `permissionPresentation.test.ts` | State labels, platform-specific hints, action labels |
+| `storage.test.ts` | TTL staleness, onboarding persistence |
 
-Files:
+### Android tests (in module)
 
-- `src/modules/intelligence/__tests__/suggestionEngine.test.ts`
-- `src/modules/intelligence/__tests__/widgetPayload.test.ts`
-- `src/modules/intelligence/__tests__/normalizeSnapshot.test.ts`
-- `src/modules/intelligence/__tests__/contextSignals.test.ts`
-- `android/app/src/test/java/com/ira/app/intelligence/ContextSignalPermissionStateResolverTest.kt`
-- `android/app/src/test/java/com/ira/app/widgets/AndroidWidgetPayloadFactoryTest.kt`
-- `ios/iraTests/ContextSignalsModuleTests.m`
+- `modules/expo-context-signals/android/src/test/` — widget kicker text, notification listener contract
 
-Run tests with:
+### Type validation
 
-- `pnpm test`
-- `pnpm exec jest --runInBand`
-- `cd android && ./gradlew app:testDebugUnitTest`
-- `xcodebuild test -workspace ios/ira.xcworkspace -scheme ira -destination 'id=<simulator-id>'`
+```bash
+pnpm exec tsc --noEmit
+```
 
-## Type validation
+## Running tests
 
-- `pnpm exec tsc --noEmit`
-
-## Native validation
-
-Native validation commands used during implementation:
-
-- `pnpm exec expo run:android --no-install --no-bundler`
-- `pnpm exec expo run:ios -d "iPhone 16 Plus" --no-install --no-bundler`
-
-Current known issue:
-
-- Android native assembly is presently blocked by Gradle failing to resolve `com.facebook.react.settings` from `android/settings.gradle`
+```bash
+pnpm test                    # JS tests
+pnpm exec tsc --noEmit       # Type check
+```
 
 ## Manual QA focus areas
 
-- app launches on both platforms
-- permission requests return expected states
-- widget payload sync succeeds
-- widgets show fallback states correctly
-- widget deep links open the app
-- debug screen reflects the same snapshot used by ranking logic
+- Onboarding flow: one permission per step, denied → Open settings, granted → auto-advance
+- Widget: correct actions match suggestion context, responsive across sizes
+- Pull-to-refresh on Home screen
+- Permission state updates when returning from settings
+- Widget payload syncs on snapshot change

@@ -2,52 +2,53 @@
 
 ## UX strategy
 
-The app uses a progressive permission model:
+Progressive one-at-a-time onboarding:
 
-1. explain value first
-2. request only the sources needed for visible features
-3. degrade gracefully if denied
-4. allow source-level toggles even after permission grant
-5. provide a direct settings escape hatch
+1. Intro screen explains the app
+2. Each permission requested individually with clear justification
+3. Shows "✓ Allowed" on grant, auto-advances
+4. Shows "Open settings" when denied (system won't re-prompt)
+5. Sources with custom settings (notification access, usage, Health Connect) open the correct settings screen
+6. Skip button on every step
+7. Summary screen at the end
 
-## Current requests
+## Android permissions
 
-### Android
+| Source | Permission type | How requested |
+|--------|----------------|---------------|
+| Calendar | `READ_CALENDAR` | Runtime prompt |
+| Contacts | `READ_CONTACTS` | Runtime prompt |
+| Physical Activity | `ACTIVITY_RECOGNITION` | Runtime prompt |
+| Health Connect | Steps + Sleep | `react-native-health-connect` JS API |
+| Notification access | NotificationListenerService | Opens system settings |
+| Usage patterns | `PACKAGE_USAGE_STATS` | Opens usage access settings |
 
-- `READ_CALENDAR`
-- `READ_CONTACTS`
-- notification listener access for music context and message summaries
+## iOS permissions
 
-App usage is modeled but not requested inline yet because it typically requires settings-based access.
+| Source | Framework | How requested |
+|--------|-----------|---------------|
+| Calendar | EventKit | Runtime prompt |
+| Contacts | Contacts | Runtime prompt |
+| Health | HealthKit | Runtime prompt |
+| Music | MediaPlayer | Runtime prompt |
 
-### iOS
-
-- calendar via `EventKit`
-- contacts via `Contacts`
-- health via `HealthKit`
-- music via `MediaPlayer`
-
-`installed_apps`, `app_usage`, and `messages_summary` are intentionally unavailable on iOS because the platform does not expose those signals to third-party apps in a general-purpose way.
-
-## App screens
-
-- `PermissionsScreen`: request entry point and source rationale. On iOS, sources whose permission state resolves to `unavailable` are hidden instead of shown as dead-end cards.
-- `SettingsScreen`: source toggles and system settings shortcut. On iOS, only requestable sources are listed.
+`installed_apps`, `app_usage`, and `messages_summary` are `unavailable` on iOS — hidden from UI.
 
 ## Permission states
 
-Supported permission state values:
+- `granted` — active and contributing
+- `denied` — user denied, needs settings
+- `blocked` — permanently blocked or needs external setup
+- `unavailable` — not supported on this platform
+- `not_determined` — not yet requested
 
-- `granted`
-- `denied`
-- `blocked`
-- `unavailable`
-- `not_determined`
+## Denied permission handling
 
-These states feed both the permission UI and widget fallback behavior.
+JS-side `usePermissions` hook tracks local overrides from request results. When the native snapshot returns `not_determined` after a denial (Android limitation), the local override preserves the `denied` state so the UI correctly shows "Open settings".
 
-## Platform notes
+## Sources tab
 
-- Android uses notification-listener access to derive message summaries and music context.
-- Android app usage remains modeled in the intelligence layer, but access still depends on settings-based usage stats access rather than an inline runtime prompt.
-- iOS widget and suggestion fallbacks are expected for unavailable sources; the UI now avoids prompting for them.
+Shows all available sources with toggles. Platform-specific labels:
+- Android: "Notification access" (not "Music") with bell icon
+- Health split into "Physical Activity" + "Health Connect" on Android, single "Health" on iOS
+- Unavailable sources hidden automatically
