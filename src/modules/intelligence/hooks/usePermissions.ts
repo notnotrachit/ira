@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 
 import { openSystemSettings, requestContextPermission } from '../contextSignals';
 import type { ContextSnapshot, PermissionState, SignalSource } from '../types';
@@ -13,30 +13,57 @@ const defaultPermissions: Record<SignalSource, PermissionState> = {
   messages_summary: 'not_determined',
 };
 
+// Maps extended permission keys back to the SignalSource they affect
+function sourceForKey(key: SignalSource | 'health_activity' | 'health_connect'): SignalSource {
+  if (key === 'health_activity' || key === 'health_connect') return 'health';
+  return key;
+}
+
 export function usePermissions(
   snapshot: ContextSnapshot | null,
   refresh?: () => Promise<void>
 ) {
-  const permissions = useMemo(
-    () => snapshot?.permissions ?? defaultPermissions,
-    [snapshot]
-  );
+  // Local overrides from actual request results — these take priority over
+  // the snapshot because the native module can't always distinguish
+  // "not_determined" from "denied" after a first denial on Android.
+  const overridesRef = useRef<Partial<Record<SignalSource, PermissionState>>>({});
 
-  async function requestPermission(source: SignalSource) {
-    const result = await requestContextPermission(source);
+  const permissions = useMemo(() => {
+    const base = snapshot?.permissions ?? defaultPermissions;
+    const merged = { ...base };
+    for (const [key, value] of Object.entries(overridesRef.current)) {
+      const source = key as SignalSource;
+      // Only keep the override if it's "worse" than what the snapshot says.
+      // If the snapshot says granted (user enabled in settings), trust that.
+      if (base[source] === 'granted') {
+        delete overridesRef.current[source];
+      } else if (value) {
+        merged[source] = value;
+      }
+    }
+    return merged;
+  }, [snapshot]);
+
+  const requestPermission = useCallback(async (key: SignalSource | 'health_activity' | 'health_connect') => {
+    const result = await requestContextPermission(key);
+    const source = sourceForKey(key);
+
+    // Store the result locally so it survives the next snapshot refresh
+    if (result === 'denied' || result === 'blocked') {
+      overridesRef.current[source] = result;
+    } else if (result === 'granted') {
+      delete overridesRef.current[source];
+    }
+
     if (refresh) {
       await refresh();
     }
     return result;
-  }
+  }, [refresh]);
 
   function isPermissionRequestable(source: SignalSource) {
     const state = permissions[source];
-    if (state === 'granted' || state === 'denied' || state === 'blocked' || state === 'not_determined') {
-      return true;
-    }
-
-    return false;
+    return state !== 'unavailable';
   }
 
   return {

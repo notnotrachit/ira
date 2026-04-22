@@ -19,7 +19,7 @@ export function formatPermissionState(state: PermissionState) {
 
 export function getPermissionHint(source: SignalSource, state: PermissionState) {
   if (state === 'granted') {
-    return 'Connected. Ira can use this source when it improves your brief.';
+    return 'Active and contributing to your brief.';
   }
 
   if (source === 'music' && Platform.OS === 'android') {

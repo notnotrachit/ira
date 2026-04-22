@@ -1,0 +1,9 @@
+{
+  "platforms": ["ios", "android"],
+  "ios": {
+    "modules": ["ExpoContextSignalsModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.contextsignals.ExpoContextSignalsModule"]
+  }
+}

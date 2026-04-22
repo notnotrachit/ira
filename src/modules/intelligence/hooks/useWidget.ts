@@ -21,17 +21,19 @@ export function useWidget(
       return;
     }
 
-    console.info(
-      '[Ira][Widget]',
-      JSON.stringify({
-        status: payload.variantData.large.status,
-        preview: payload.variantData.large.topMessagePreview,
-        suggestion: payload.variantData.large.topSuggestion?.message,
-        actions: payload.variantData.large.quickActions.map((action) => action.label),
-        reasons: payload.variantData.large.debugReasons,
-        messageSourceAppPackage: snapshot?.messagesSummary.sourceAppPackage,
-      })
-    );
+    if (__DEV__) {
+      console.info(
+        '[Ira][Widget]',
+        JSON.stringify({
+          status: payload.variantData.large.status,
+          preview: payload.variantData.large.topMessagePreview,
+          suggestion: payload.variantData.large.topSuggestion?.message,
+          actions: payload.variantData.large.quickActions.map((action) => action.label),
+          reasons: payload.variantData.large.debugReasons,
+          messageSourceAppPackage: snapshot?.messagesSummary.sourceAppPackage,
+        })
+      );
+    }
 
     void syncWidgetPayload(payload);
   }, [payload]);

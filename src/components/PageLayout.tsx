@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, type RefreshControlProps } from 'react-native';
 import { Text } from 'react-native-paper';
 
 import { appColors } from '../theme/appTheme';
@@ -9,16 +9,18 @@ export function PageLayout({
   title,
   subtitle,
   headerAside,
+  refreshControl,
   children,
 }: {
   eyebrow?: string;
   title: string;
   subtitle?: string;
   headerAside?: ReactNode;
+  refreshControl?: React.ReactElement<RefreshControlProps>;
   children: ReactNode;
 }) {
   return (
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} refreshControl={refreshControl}>
       <View style={styles.headerRow}>
         <View style={styles.headerCopy}>
           {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}

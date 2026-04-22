@@ -1,39 +1,30 @@
 import {
   Linking,
-  NativeModules,
   PermissionsAndroid,
   Platform,
   type Permission,
 } from 'react-native';
 
+import ExpoContextSignals from 'expo-context-signals';
 import { createMockSnapshot } from './mockSnapshot';
 import { normalizeContextSnapshot } from './normalizeSnapshot';
 import type { ContextSnapshot, PermissionState, SharedWidgetPayload, SignalSource } from './types';
 
-type NativeContextSignalsModule = {
-  getContextSnapshot?: () => Promise<ContextSnapshot>;
-  syncWidgetPayload?: (payload: string) => Promise<boolean>;
-  requestPermission?: (source: SignalSource) => Promise<PermissionState>;
-};
-
-const nativeModule = NativeModules.ContextSignalsModule as NativeContextSignalsModule | undefined;
-
 export async function getContextSnapshot(): Promise<ContextSnapshot> {
-  if (nativeModule?.getContextSnapshot) {
-    const snapshot = await nativeModule.getContextSnapshot();
+  try {
+    const snapshot = await ExpoContextSignals.getContextSnapshot() as unknown as ContextSnapshot;
     return normalizeContextSnapshot(snapshot);
+  } catch {
+    return normalizeContextSnapshot(createMockSnapshot());
   }
-
-  // This fallback keeps the JS app testable before native modules land.
-  return normalizeContextSnapshot(createMockSnapshot());
 }
 
 export async function syncWidgetPayload(payload: SharedWidgetPayload): Promise<boolean> {
-  if (!nativeModule?.syncWidgetPayload) {
+  try {
+    return await ExpoContextSignals.syncWidgetPayload(JSON.stringify(payload));
+  } catch {
     return false;
   }
-
-  return nativeModule.syncWidgetPayload(JSON.stringify(payload));
 }
 
 function mapAndroidPermissionResult(result: string): PermissionState {
@@ -48,61 +39,51 @@ function mapAndroidPermissionResult(result: string): PermissionState {
   }
 }
 
-function getAndroidPermission(source: SignalSource): Permission | null {
+function getAndroidPermission(source: string): Permission | null {
   switch (source) {
     case 'calendar':
       return PermissionsAndroid.PERMISSIONS.READ_CALENDAR;
     case 'contacts':
       return PermissionsAndroid.PERMISSIONS.READ_CONTACTS;
+    case 'health_activity': {
+      const perm = PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION;
+      return perm ?? null;
+    }
     default:
       return null;
   }
 }
 
-async function requestAndroidActivityRecognitionPermission() {
-  const permission = PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION;
-  if (!permission) {
-    return 'unavailable' as PermissionState;
-  }
-
-  try {
-    const result = await PermissionsAndroid.request(permission);
-    return mapAndroidPermissionResult(result);
-  } catch {
-    return 'denied' as PermissionState;
-  }
-}
-
-export async function requestContextPermission(source: SignalSource): Promise<PermissionState> {
+export async function requestContextPermission(source: SignalSource | 'health_activity' | 'health_connect'): Promise<PermissionState> {
   if (Platform.OS === 'android') {
-    if (source === 'health') {
-      await requestAndroidActivityRecognitionPermission();
+    // health_activity = Android ACTIVITY_RECOGNITION runtime permission
+    if (source === 'health_activity') {
+      const perm = getAndroidPermission('health_activity');
+      if (!perm) return 'unavailable';
+      ExpoContextSignals.markPermissionRequested(perm);
+      const result = await PermissionsAndroid.request(perm);
+      return mapAndroidPermissionResult(result);
     }
 
-    if (
-      (source === 'health' ||
-        source === 'app_usage' ||
-        source === 'music' ||
-        source === 'messages_summary') &&
-      nativeModule?.requestPermission
-    ) {
-      return nativeModule.requestPermission(source);
+    // health_connect = delegate to native module which opens Health Connect
+    if (source === 'health_connect') {
+      return (await ExpoContextSignals.requestPermission('health')) as PermissionState;
     }
 
-    const permission = getAndroidPermission(source);
-    if (!permission) {
-      return 'unavailable';
+    // Standard Android runtime permissions (calendar, contacts)
+    const perm = getAndroidPermission(source);
+    if (perm) {
+      ExpoContextSignals.markPermissionRequested(perm);
+      const result = await PermissionsAndroid.request(perm);
+      return mapAndroidPermissionResult(result);
     }
 
-    const result = await PermissionsAndroid.request(permission);
-    return mapAndroidPermissionResult(result);
+    // Everything else (health, music, app_usage, messages_summary) → native module
+    return (await ExpoContextSignals.requestPermission(source)) as PermissionState;
   }
 
-  if (nativeModule?.requestPermission) {
-    return nativeModule.requestPermission(source);
-  }
-
-  return 'unavailable';
+  // iOS — all permissions handled by native module
+  return (await ExpoContextSignals.requestPermission(source as string)) as PermissionState;
 }
 
 export async function openSystemSettings() {

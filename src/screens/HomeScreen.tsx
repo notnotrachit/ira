@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
 import { PageLayout, SectionHeader, pageStyles } from '../components/PageLayout';
@@ -7,8 +7,12 @@ import { appColors } from '../theme/appTheme';
 
 export function HomeScreen({
   suggestions,
+  onRefresh,
+  isRefreshing,
 }: {
   suggestions: ContextualSuggestion[];
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }) {
   const topSuggestion = suggestions[0];
   const remainingSuggestions = topSuggestion
@@ -20,6 +24,7 @@ export function HomeScreen({
       eyebrow="Today"
       title="Your daily brief"
       subtitle="The most important thing first. If anything else matters, it appears below."
+      refreshControl={onRefresh ? <RefreshControl refreshing={isRefreshing ?? false} onRefresh={onRefresh} tintColor={appColors.accent} /> : undefined}
     >
       <View style={pageStyles.card}>
         <Text style={styles.cardEyebrow}>Now</Text>
