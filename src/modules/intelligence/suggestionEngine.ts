@@ -143,13 +143,15 @@ export function generateSuggestions(snapshot: ContextSnapshot): ContextualSugges
   }
 
   if (topUsage && topUsage.minutesToday >= 75) {
+    const appName = snapshot.installedApps.find((a) => a.packageOrBundleId === topUsage.appId)?.name
+      ?? topUsage.appId.split('.').pop() ?? 'an app';
     pushSuggestion(suggestions, {
       id: 'usage-reset',
-      message: `You have already spent ${topUsage.minutesToday} minutes in ${topUsage.appId.split('.').pop()}. Take a quick reset before opening the same app again.`,
+      message: `You have spent ${topUsage.minutesToday} minutes in ${appName} today. A short break could help you refocus.`,
       relevanceScore: clampScore(0.44 + Math.min(topUsage.minutesToday / 240, 0.18)),
       source: 'app_usage',
       category: 'prompt',
-      deepLink: 'ira://home',
+      deepLink: undefined,
       debugReasons: ['high foreground time detected'],
     });
   }

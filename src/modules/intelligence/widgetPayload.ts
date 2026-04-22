@@ -124,11 +124,15 @@ function derivePrimaryAction(
 
   if (topSuggestion?.deepLink) {
     if (topSuggestion.category === 'wellness') {
-      return undefined;
+      return { label: 'Walk', deepLink: resolveHealthDeepLink(snapshot) };
     }
 
-    if (topSuggestion.category === 'reminder' || hasUpcomingEvent(snapshot)) {
+    if (topSuggestion.category === 'reminder') {
       return { label: 'Agenda', deepLink: resolveCalendarDeepLink(snapshot) };
+    }
+
+    if (topSuggestion.category === 'conversation') {
+      return { label: 'Reply', deepLink: resolveMessagesDeepLink(snapshot) };
     }
   }
 
@@ -175,47 +179,44 @@ function buildQuickActions(
   snapshot: ContextSnapshot,
   suggestions: ContextualSuggestion[]
 ) {
-  if (status === 'denied' || status === 'empty') {
-    return [];
-  }
+  if (status !== 'ready') return [];
 
-  if (status === 'stale') {
-    return [];
-  }
-
-  const primaryAction = derivePrimaryAction(snapshot, suggestions, variant);
+  const topSuggestion = suggestions[0];
   const nextEvent = snapshot.calendarEvents[0];
-  const evening = currentHour() >= 17;
+  const meetingLink = getMeetingLink(nextEvent);
+  const unread = snapshot.messagesSummary.unreadCount;
+  const maxActions = variant === 'small' ? 1 : variant === 'medium' ? 2 : 3;
+  const actions: { label: string; deepLink: string }[] = [];
 
-  const actions = [
-    primaryAction,
-    snapshot.messagesSummary.unreadCount > 0 && variant === 'large'
-      ? { label: 'Reply', deepLink: resolveMessagesDeepLink(snapshot) }
-      : undefined,
-    (variant === 'medium' && snapshot.messagesSummary.unreadCount > 0)
-      ? { label: 'Health', deepLink: resolveHealthDeepLink(snapshot) }
-      : hasWellnessPrompt(suggestions) && snapshot.messagesSummary.unreadCount === 0
-      ? { label: 'Health', deepLink: resolveHealthDeepLink(snapshot) }
-      : undefined,
-  ].filter(Boolean) as { label: string; deepLink: string }[];
-
-  if (
-    nextEvent &&
-    getMeetingLink(nextEvent) &&
-    !(snapshot.messagesSummary.unreadCount > 0 && (variant === 'small' || variant === 'medium'))
-  ) {
-    return [
-      { label: 'Join', deepLink: getMeetingLink(nextEvent) ?? 'ira://calendar' },
-      { label: 'Agenda', deepLink: resolveCalendarDeepLink(snapshot) },
-    ];
+  // Meeting with link = Join + Agenda
+  if (meetingLink) {
+    actions.push({ label: 'Join', deepLink: meetingLink });
+    actions.push({ label: 'Agenda', deepLink: resolveCalendarDeepLink(snapshot) });
+  }
+  // Unread messages = Reply
+  else if (unread > 0) {
+    actions.push({ label: 'Reply', deepLink: resolveMessagesDeepLink(snapshot) });
+  }
+  // Calendar event = Agenda
+  else if (nextEvent && topSuggestion?.category === 'reminder') {
+    actions.push({ label: 'Agenda', deepLink: resolveCalendarDeepLink(snapshot) });
+  }
+  // Wellness = Walk
+  else if (topSuggestion?.category === 'wellness') {
+    actions.push({ label: 'Walk', deepLink: resolveHealthDeepLink(snapshot) });
   }
 
-  if (evening && snapshot.messagesSummary.unreadCount === 0 && (snapshot.health.stepsToday ?? 0) < 5000) {
-    return [{ label: 'Walk', deepLink: resolveHealthDeepLink(snapshot) }];
+  // Add secondary contextual action if space allows
+  const primaryCategory = topSuggestion?.category;
+  if (actions.length < maxActions && nextEvent && !actions.some((a) => a.label === 'Agenda') && primaryCategory !== 'wellness') {
+    actions.push({ label: 'Agenda', deepLink: resolveCalendarDeepLink(snapshot) });
+  }
+  if (actions.length < maxActions && hasWellnessPrompt(suggestions) && !actions.some((a) => a.label === 'Walk') && primaryCategory !== 'reminder') {
+    actions.push({ label: 'Walk', deepLink: resolveHealthDeepLink(snapshot) });
   }
 
-  return actions.filter(
-    (action, index, array) => array.findIndex((item) => item.label === action.label) === index
+  return actions.slice(0, maxActions).filter(
+    (a, i, arr) => arr.findIndex((x) => x.label === a.label) === i
   );
 }
 

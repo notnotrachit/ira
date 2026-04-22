@@ -19,6 +19,13 @@ const expoModuleMock = {
 
 jest.mock('expo-context-signals', () => ({ __esModule: true, default: expoModuleMock }));
 
+jest.mock('react-native-health-connect', () => ({
+  initialize: jest.fn(async () => true),
+  requestPermission: jest.fn(async () => []),
+  readRecords: jest.fn(async () => ({ records: [] })),
+  getGrantedPermissions: jest.fn(async () => []),
+}));
+
 jest.mock('react-native', () => ({
   PermissionsAndroid: {
     PERMISSIONS: { READ_CALENDAR: 'READ_CALENDAR', READ_CONTACTS: 'READ_CONTACTS' },

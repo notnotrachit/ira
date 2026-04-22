@@ -8,5 +8,17 @@
         <action android:name="android.service.notification.NotificationListenerService" />
       </intent-filter>
     </service>
+
+    <receiver
+      android:name="expo.modules.contextsignals.IraWidgetProvider"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+        <action android:name="com.ira.app.WIDGET_PAYLOAD_UPDATED" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/ira_widget_info" />
+    </receiver>
   </application>
 </manifest>

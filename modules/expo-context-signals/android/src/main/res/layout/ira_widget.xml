@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="16dp" android:background="@drawable/ira_widget_background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+        <TextClock android:id="@+id/widget_clock_compact" android:layout_width="wrap_content" android:layout_height="wrap_content" android:format12Hour="h:mm" android:format24Hour="HH:mm" android:textSize="22sp" android:textColor="#F5F7FB" android:textStyle="bold" android:visibility="gone"/>
+        <TextView android:id="@+id/widget_kicker" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textSize="11sp" android:textColor="#94A0FF" android:textStyle="bold" android:textAllCaps="true" android:letterSpacing="0.08" android:layout_marginStart="8dp"/>
+        <TextView android:id="@+id/widget_unread_badge" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="#39C29A" android:textStyle="bold" android:visibility="gone" android:background="@drawable/ira_widget_status_bg" android:paddingStart="8dp" android:paddingEnd="8dp" android:paddingTop="2dp" android:paddingBottom="2dp"/>
+    </LinearLayout>
+    <TextClock android:id="@+id/widget_clock_large" android:layout_width="wrap_content" android:layout_height="wrap_content" android:format12Hour="h:mm" android:format24Hour="HH:mm" android:textSize="42sp" android:textColor="#F5F7FB" android:textStyle="bold" android:layout_marginTop="4dp"/>
+    <TextView android:id="@+id/widget_preview" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="#B2BED1" android:maxLines="3" android:layout_marginTop="6dp"/>
+    <TextView android:id="@+id/widget_suggestion" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="14sp" android:textColor="#F5F7FB" android:textStyle="bold" android:maxLines="3" android:layout_marginTop="8dp" android:background="@drawable/ira_widget_panel_bg" android:padding="12dp" android:visibility="gone"/>
+    <LinearLayout android:id="@+id/widget_actions_row" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="10dp" android:visibility="gone">
+        <TextView android:id="@+id/widget_action_primary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="#F5F7FB" android:textStyle="bold" android:background="@drawable/ira_widget_chip_bg" android:paddingStart="14dp" android:paddingEnd="14dp" android:paddingTop="8dp" android:paddingBottom="8dp"/>
+        <TextView android:id="@+id/widget_action_secondary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="13sp" android:textColor="#F5F7FB" android:textStyle="bold" android:background="@drawable/ira_widget_chip_bg" android:paddingStart="14dp" android:paddingEnd="14dp" android:paddingTop="8dp" android:paddingBottom="8dp" android:layout_marginStart="8dp" android:visibility="gone"/>
+    </LinearLayout>
+</LinearLayout>

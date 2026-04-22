@@ -138,6 +138,11 @@ export async function requestContextPermission(source: SignalSource | 'health_ac
       }
     }
 
+    // health = same as health_connect on Android (Sources tab uses plain 'health')
+    if (source === 'health') {
+      return requestContextPermission('health_connect');
+    }
+
     // Standard Android runtime permissions (calendar, contacts)
     const perm = getAndroidPermission(source);
     if (perm) {
